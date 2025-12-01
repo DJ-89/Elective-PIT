@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Philippine Earthquake Prediction Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1><i class="fas fa-globe-asia"></i> Philippine Earthquake Prediction</h1>
+                <p>AI-powered seismic risk assessment using DBSCAN clustering and XGBoost</p>
+            </div>
+        </header>
+
+        <!-- Stats Dashboard -->
+        <section class="stats-section">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-bolt"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="accuracy">99.5%</h3>
+                        <p>Model Accuracy</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-map-marker-alt"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="clusters">24</h3>
+                        <p>Seismic Clusters</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-database"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="data-points">113,276</h3>
+                        <p>Data Points</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="significant">12,458</h3>
+                        <p>Significant Quakes</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Left Panel - Prediction Form -->
+            <div class="panel left-panel">
+                <div class="panel-header">
+                    <h2><i class="fas fa-calculator"></i> Earthquake Risk Assessment</h2>
+                    <p>Enter coordinates to predict seismic risk</p>
+                </div>
+                
+                <form id="prediction-form" class="prediction-form">
+                    <div class="form-group">
+                        <label for="latitude"><i class="fas fa-map-pin"></i> Latitude</label>
+                        <input type="number" id="latitude" step="0.0001" min="-90" max="90" placeholder="Enter latitude (-90 to 90)" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="longitude"><i class="fas fa-map-pin"></i> Longitude</label>
+                        <input type="number" id="longitude" step="0.0001" min="-180" max="180" placeholder="Enter longitude (-180 to 180)" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="depth"><i class="fas fa-mountain"></i> Depth (km)</label>
+                        <input type="number" id="depth" step="0.1" min="0" max="700" placeholder="Enter depth in km" required>
+                    </div>
+                    
+                    <button type="submit" class="predict-btn">
+                        <i class="fas fa-search"></i> Predict Risk
+                    </button>
+                </form>
+                
+                <!-- Prediction Result -->
+                <div id="prediction-result" class="result-container" style="display: none;">
+                    <div class="result-header">
+                        <h3>Prediction Result</h3>
+                    </div>
+                    <div class="result-content">
+                        <div id="result-text" class="result-text"></div>
+                        <div id="probability" class="probability"></div>
+                        <div id="safety-advice" class="safety-advice"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right Panel - Data Visualization -->
+            <div class="panel right-panel">
+                <div class="panel-header">
+                    <h2><i class="fas fa-chart-line"></i> Seismic Data Visualization</h2>
+                    <p>Interactive earthquake data analysis</p>
+                </div>
+                
+                <!-- Charts Container -->
+                <div class="charts-container">
+                    <div class="chart-wrapper">
+                        <canvas id="magnitudeChart"></canvas>
+                    </div>
+                    
+                    <div class="chart-wrapper">
+                        <canvas id="regionChart"></canvas>
+                    </div>
+                    
+                    <div class="chart-wrapper">
+                        <canvas id="depthChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Earthquake Data Table -->
+                <div class="data-table-container">
+                    <h3><i class="fas fa-table"></i> Recent Earthquake Data</h3>
+                    <div class="table-wrapper">
+                        <table id="earthquake-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Location</th>
+                                    <th>Magnitude</th>
+                                    <th>Depth (km)</th>
+                                    <th>Significance</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-body">
+                                <!-- Data will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Model Information Section -->
+        <section class="info-section">
+            <div class="info-grid">
+                <div class="info-card">
+                    <h3><i class="fas fa-brain"></i> Model Information</h3>
+                    <p><strong>Algorithm:</strong> XGBoost with DBSCAN clustering</p>
+                    <p><strong>Features:</strong> Latitude, Longitude, Depth, Time, Regional clustering</p>
+                    <p><strong>Training Data:</strong> 113,276 Philippine earthquake records</p>
+                </div>
+                
+                <div class="info-card">
+                    <h3><i class="fas fa-shield-alt"></i> Safety Guidelines</h3>
+                    <p><strong>Significant Quake:</strong> Duck, Cover, and Hold</p>
+                    <p><strong>After Quake:</strong> Check for injuries, avoid damaged structures</p>
+                    <p><strong>Emergency:</strong> Contact PHIVOLCS at (02) 8929-9445</p>
+                </div>
+                
+                <div class="info-card">
+                    <h3><i class="fas fa-info-circle"></i> About This Project</h3>
+                    <p>This model predicts earthquake significance (magnitude ≥ 4.0) using historical PHIVOLCS data.</p>
+                    <p>Not for real-time prediction but for risk assessment and preparedness.</p>
+                </div>
+            </div>
+        </section>
+    </div>
+    
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay" style="display: none;">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Analyzing seismic data...</p>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
