@@ -33,6 +33,27 @@ def load_earthquake_data():
         df = pd.read_csv('phivolcs_earthquake_data.csv')
         # Use only the first 10000 records for memory management
         df = df.head(10000).copy()
+        
+        # Convert numeric columns that might be stored as strings
+        numeric_cols = ['Latitude', 'Longitude', 'Depth_In_Km', 'Magnitude']
+        for col in numeric_cols:
+            df[col] = pd.to_numeric(df[col], errors='coerce')
+        
+        # Remove rows with missing values in essential columns after conversion
+        essential_cols = ['Latitude', 'Longitude', 'Depth_In_Km', 'Magnitude']
+        df = df.dropna(subset=essential_cols)
+        
+        # Rename columns to match expected lowercase format
+        df = df.rename(columns={
+            'Latitude': 'latitude',
+            'Longitude': 'longitude', 
+            'Depth_In_Km': 'depth',
+            'Magnitude': 'magnitude'
+        })
+        
+        # Create target variable
+        df['significant'] = (df['magnitude'] >= 4.0).astype(int)
+        
         return df
     except FileNotFoundError:
         print("Earthquake data file not found. Using sample data.")
@@ -97,25 +118,6 @@ def get_regional_stats(df):
     return stats
 
 regional_stats = get_regional_stats(earthquake_data)
-
-@app.route('/')
-def serve_index():
-    with open('index.html', 'r') as f:
-        return f.read()
-
-@app.route('/<path:path>')
-def serve_static(path):
-    try:
-        if path.endswith('.js'):
-            return send_from_directory('.', path, mimetype='application/javascript')
-        elif path.endswith('.css'):
-            return send_from_directory('.', path, mimetype='text/css')
-        elif path.endswith('.html'):
-            return send_from_directory('.', path, mimetype='text/html')
-        else:
-            return send_from_directory('.', path)
-    except:
-        return serve_index()
 
 @app.route('/api/prediction-stats')
 def get_prediction_stats():
@@ -285,4 +287,4 @@ def get_cluster_map():
     return jsonify(clusters.to_dict('records'))
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080, debug=True)
+    app.run(host='0.0.0.0', port=8000, debug=True)
