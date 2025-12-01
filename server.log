@@ -1,0 +1,5 @@
+🌍 Earthquake Prediction Dashboard server running at http://localhost:8000
+Press Ctrl+C to stop the server
+127.0.0.1 - - [01/Dec/2025 06:47:11] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [01/Dec/2025 06:47:13] "GET /api/prediction-stats HTTP/1.1" 200 -
+127.0.0.1 - - [01/Dec/2025 06:47:22] "POST /api/predict HTTP/1.1" 200 -
