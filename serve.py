@@ -252,7 +252,7 @@ class EarthquakePredictionHandler(BaseHTTPRequestHandler):
 
     def make_prediction(self, lat, lon, depth):
         """Make a prediction using the trained model"""
-        global model, feature_columns
+        global model, feature_columns, processed_data
         
         try:
             # Load model and feature columns if not already loaded
@@ -278,6 +278,11 @@ class EarthquakePredictionHandler(BaseHTTPRequestHandler):
                         'lat_long_interaction', 'distance_from_center'
                     ]
             
+            # Load processed data if not already loaded to get cluster information
+            if processed_data is None:
+                if os.path.exists('processed_earthquake_data_improved.csv'):
+                    processed_data = pd.read_csv('processed_earthquake_data_improved.csv')
+            
             # Create a sample input with the expected features
             # For simplicity, we'll use current date for temporal features
             current_date = datetime.now()
@@ -293,12 +298,51 @@ class EarthquakePredictionHandler(BaseHTTPRequestHandler):
             else:
                 region = 'Unknown'
             
+            # Determine cluster ID based on location (find nearest cluster)
+            cluster_id = -1  # Default to noise cluster
+            cluster_stats = {
+                'cluster_Magnitude_mean': 3.5,
+                'cluster_Magnitude_std': 1.2,
+                'cluster_Magnitude_count': 50,
+                'cluster_Depth_In_Km_mean': 15.0,
+                'cluster_Depth_In_Km_std': 8.0
+            }
+            
+            if processed_data is not None:
+                # Find the nearest cluster to the given coordinates
+                coords = processed_data[['Latitude', 'Longitude']]
+                distances = np.sqrt((coords['Latitude'] - lat)**2 + (coords['Longitude'] - lon)**2)
+                
+                # Find the closest earthquake and assign its cluster
+                min_idx = distances.idxmin()
+                if min_idx in processed_data.index:
+                    cluster_id = processed_data.loc[min_idx, 'cluster_id']
+                    
+                    # Get cluster statistics for this specific cluster
+                    cluster_data = processed_data[processed_data['cluster_id'] == cluster_id]
+                    if len(cluster_data) > 0:
+                        cluster_stats = {
+                            'cluster_Magnitude_mean': cluster_data['Magnitude'].mean() if 'Magnitude' in cluster_data.columns else 3.5,
+                            'cluster_Magnitude_std': cluster_data['Magnitude'].std() if 'Magnitude' in cluster_data.columns else 1.2,
+                            'cluster_Magnitude_count': len(cluster_data),
+                            'cluster_Depth_In_Km_mean': cluster_data['Depth_In_Km'].mean() if 'Depth_In_Km' in cluster_data.columns else 15.0,
+                            'cluster_Depth_In_Km_std': cluster_data['Depth_In_Km'].std() if 'Depth_In_Km' in cluster_data.columns else 8.0
+                        }
+            
+            # Calculate enhanced features
+            avg_magnitude = 3.5  # Default average magnitude
+            depth_magnitude_ratio = depth / (avg_magnitude + 0.001)  # Adding small value to avoid division by zero
+            magnitude_squared = avg_magnitude ** 2  # We'll update this after prediction
+            depth_normalized = (depth - 15.0) / 8.0  # normalized by mean and std
+            lat_long_interaction = lat * lon
+            distance_from_center = np.sqrt((lat - 12.8797)**2 + (lon - 121.7740)**2)
+            
             # Create input data dictionary
             input_data = {
                 'Latitude': lat,
                 'Longitude': lon,
                 'Depth_In_Km': depth,
-                'cluster_id': 0,  # Default cluster
+                'cluster_id': cluster_id,
                 'Year': current_date.year,
                 'Month': current_date.month,
                 'Day': current_date.day,
@@ -308,16 +352,16 @@ class EarthquakePredictionHandler(BaseHTTPRequestHandler):
                 'Region_Mindanao': 1 if region == 'Mindanao' else 0,
                 'Region_Visayas': 1 if region == 'Visayas' else 0,
                 'Region_Unknown': 1 if region == 'Unknown' else 0,
-                'cluster_Magnitude_mean': 3.5,  # Default values
-                'cluster_Magnitude_std': 1.2,
-                'cluster_Magnitude_count': 50,
-                'cluster_Depth_In_Km_mean': 15.0,
-                'cluster_Depth_In_Km_std': 8.0,
-                'depth_magnitude_ratio': depth / 3.5,  # Assuming avg magnitude of 3.5
-                'magnitude_squared': 12.25,  # 3.5^2
-                'depth_normalized': (depth - 15.0) / 8.0,  # normalized by mean and std
-                'lat_long_interaction': lat * lon,
-                'distance_from_center': np.sqrt((lat - 12.8797)**2 + (lon - 121.7740)**2)
+                'cluster_Magnitude_mean': cluster_stats['cluster_Magnitude_mean'],
+                'cluster_Magnitude_std': cluster_stats['cluster_Magnitude_std'],
+                'cluster_Magnitude_count': cluster_stats['cluster_Magnitude_count'],
+                'cluster_Depth_In_Km_mean': cluster_stats['cluster_Depth_In_Km_mean'],
+                'cluster_Depth_In_Km_std': cluster_stats['cluster_Depth_In_Km_std'],
+                'depth_magnitude_ratio': depth_magnitude_ratio,
+                'magnitude_squared': magnitude_squared,
+                'depth_normalized': depth_normalized,
+                'lat_long_interaction': lat_long_interaction,
+                'distance_from_center': distance_from_center
             }
             
             # Create DataFrame with the correct columns
@@ -335,16 +379,42 @@ class EarthquakePredictionHandler(BaseHTTPRequestHandler):
             prediction = model.predict(X)[0]
             probability = model.predict_proba(X)[0][1]  # Probability of positive class
             
+            # Since the model shows 100% accuracy which is unrealistic and likely due to overfitting,
+            # we'll use the raw probability to make a more realistic prediction.
+            # In a real-world scenario, the model wouldn't be 100% accurate.
+            
+            # Apply a more realistic threshold based on domain knowledge
+            # For earthquakes in high-risk areas like the Philippines, we may want to be more sensitive
+            base_threshold = 0.3  # Lower threshold for more sensitivity
+            
+            # Adjust threshold based on location (higher risk areas)
+            if region == 'Mindanao' and lat >= 5 and lat <= 10 and lon >= 124 and lon <= 126:
+                # High-risk area in Mindanao
+                threshold = 0.2
+            elif region == 'Visayas' and lat >= 8 and lat <= 11 and lon >= 124 and lon <= 126:
+                # High-risk area in Visayas (Surigao region)
+                threshold = 0.25
+            elif region == 'Luzon' and lat >= 15 and lat <= 18 and lon >= 120 and lon <= 122:
+                # Northern Luzon, potentially high-risk
+                threshold = 0.25
+            else:
+                # Default threshold
+                threshold = base_threshold
+            
+            # Calculate if it's significant based on adjusted threshold
+            is_significant = probability >= threshold
+            
             # Format result
             result = {
                 'latitude': lat,
                 'longitude': lon,
                 'depth': depth,
-                'is_significant': bool(prediction),
+                'is_significant': bool(is_significant),
                 'probability': float(probability),
-                'confidence': float(probability) if prediction else float(1 - probability),
+                'confidence': float(probability) if is_significant else float(1 - probability),
                 'region': region,
-                'safety_advice': self.get_safety_advice(bool(prediction))
+                'cluster_id': int(cluster_id),
+                'safety_advice': self.get_safety_advice(bool(is_significant))
             }
             
             return result
@@ -352,6 +422,8 @@ class EarthquakePredictionHandler(BaseHTTPRequestHandler):
         except Exception as e:
             # If model prediction fails, use simulation
             print(f"Model prediction failed: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return self.simulate_prediction(lat, lon, depth)
 
     def simulate_prediction(self, lat, lon, depth):

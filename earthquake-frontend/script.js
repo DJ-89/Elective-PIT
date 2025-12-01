@@ -255,7 +255,7 @@ function setupForm() {
             document.getElementById('loading-overlay').style.display = 'none';
             
             // Display results
-            displayPredictionResult(result.is_significant, result.probability, latitude, longitude, depth, result.safety_advice);
+            displayPredictionResult(result.is_significant, result.probability, latitude, longitude, depth, result.safety_advice, result.cluster_id);
         } catch (error) {
             console.error('Error making prediction:', error);
             
@@ -306,10 +306,10 @@ function makePrediction(lat, lon, depth) {
     isSignificant = Math.random() < probability;
     
     // Display results
-    displayPredictionResult(isSignificant, probability, lat, lon, depth, null);
+    displayPredictionResult(isSignificant, probability, lat, lon, depth, null, null);
 }
 
-function displayPredictionResult(isSignificant, probability, lat, lon, depth, safetyAdviceData) {
+function displayPredictionResult(isSignificant, probability, lat, lon, depth, safetyAdviceData, clusterId = null) {
     const resultContainer = document.getElementById('prediction-result');
     const resultText = document.getElementById('result-text');
     const probabilityEl = document.getElementById('probability');
@@ -332,6 +332,11 @@ function displayPredictionResult(isSignificant, probability, lat, lon, depth, sa
     
     // Set probability
     probabilityEl.textContent = `Prediction Confidence: ${(probability * 100).toFixed(1)}%`;
+    
+    // Add cluster information if available
+    if (clusterId !== null) {
+        probabilityEl.innerHTML += ` | Cluster ID: ${clusterId}`;
+    }
     
     // Set safety advice - use API data if available, otherwise fallback
     if (safetyAdviceData) {
