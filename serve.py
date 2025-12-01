@@ -388,21 +388,28 @@ class EarthquakePredictionHandler(BaseHTTPRequestHandler):
             base_threshold = 0.3  # Lower threshold for more sensitivity
             
             # Adjust threshold based on location (higher risk areas)
-            if region == 'Mindanao' and lat >= 5 and lat <= 10 and lon >= 124 and lon <= 126:
-                # High-risk area in Mindanao
-                threshold = 0.2
-            elif region == 'Visayas' and lat >= 8 and lat <= 11 and lon >= 124 and lon <= 126:
-                # High-risk area in Visayas (Surigao region)
+            if region == 'Mindanao':
+                # Mindanao has higher seismic activity based on our data analysis
                 threshold = 0.25
-            elif region == 'Luzon' and lat >= 15 and lat <= 18 and lon >= 120 and lon <= 122:
-                # Northern Luzon, potentially high-risk
+            elif region == 'Visayas':
+                # Visayas also has significant seismic activity
                 threshold = 0.25
+            elif region == 'Luzon':
+                # Luzon has moderate seismic activity
+                threshold = 0.3
             else:
-                # Default threshold
+                # Default threshold for unknown regions
                 threshold = base_threshold
             
             # Calculate if it's significant based on adjusted threshold
             is_significant = probability >= threshold
+            
+            # Add additional logic based on depth and location
+            # Shallow earthquakes are generally more dangerous
+            if depth <= 35:  # Shallow earthquake
+                if probability >= 0.15:  # Lower threshold for shallow quakes
+                    is_significant = True
+                    probability = max(probability, 0.4)  # Boost probability for shallow quakes
             
             # Format result
             result = {
@@ -433,21 +440,45 @@ class EarthquakePredictionHandler(BaseHTTPRequestHandler):
         probability = 0.05  # Base probability
         
         if (5 <= lat <= 18) and (116 <= lon <= 127):  # Within Philippine region
-            if depth <= 70:  # Shallow quakes are more likely to be significant
-                probability = 0.3 + (abs(lat - 8.5) * 0.04) + (abs(lon - 124.5) * 0.03)
+            if depth <= 35:  # Shallow quakes are more likely to be significant
+                probability = 0.15 + (abs(lat - 8.5) * 0.03) + (abs(lon - 124.5) * 0.02)
+            elif depth <= 70:  # Moderate depth quakes
+                probability = 0.10 + (abs(lat - 8.5) * 0.02) + (abs(lon - 124.5) * 0.015)
             else:  # Deep quakes have different characteristics
-                probability = 0.15 + (np.random.random() * 0.15)
+                probability = 0.08 + (np.random.random() * 0.07)
             
-            # Adjust for specific high-risk areas
-            if (8 <= lat <= 10) and (125 <= lon <= 126.5):  # Surigao area - high risk
-                probability += 0.25
-            elif (5 <= lat <= 8) and (124 <= lon <= 126):  # Mindanao eastern coast - high risk
-                probability += 0.20
+            # Adjust for specific high-risk regions in Philippines
+            if 5 <= lat <= 10 and 124 <= lon <= 126.5:  # Mindanao - high risk
+                probability += 0.15
+            elif 8 <= lat <= 12 and 122 <= lon <= 126:  # Visayas - moderate to high risk
+                probability += 0.12
+            elif 14 <= lat <= 18 and 120 <= lon <= 122:  # Northern Luzon - moderate risk
+                probability += 0.08
         
         # Ensure probability is within bounds
         probability = min(probability, 0.95)
         
-        is_significant = np.random.random() < probability
+        # Apply more realistic threshold based on region
+        region = 'Unknown'
+        if 5 <= lat <= 18 and 116 <= lon <= 127:  # Philippines general area
+            if lat >= 15:  # Northern Philippines
+                region = 'Luzon'
+            elif 8 <= lat < 15:  # Central Philippines
+                region = 'Visayas'
+            else:  # Southern Philippines
+                region = 'Mindanao'
+        
+        # Apply region-specific thresholds
+        if region == 'Mindanao':
+            threshold = 0.15
+        elif region == 'Visayas':
+            threshold = 0.18
+        elif region == 'Luzon':
+            threshold = 0.22
+        else:
+            threshold = 0.25
+        
+        is_significant = probability >= threshold
         
         # Determine region based on coordinates
         if 5 <= lat <= 18 and 116 <= lon <= 127:  # Philippines general area

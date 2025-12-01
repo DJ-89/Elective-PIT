@@ -1,47 +1,44 @@
 ```
-# Python
-__pycache__/
+# Compiled and build artifacts
+*.pkl
 *.pyc
-*.pyo
-*.pyd
-.Python
-env/
-venv/
-.venv/
-.ENV
-.python-version
+__pycache__/
 
-# Logs
+# Dependencies
+.venv/
+venv/
+node_modules/
+
+# Logs and temp files
 *.log
+*.tmp
+*.swp
 
 # Environment
 .env
 .env.local
-.env.*
+*.env.*
 
-# Editor
+# Editors
 .vscode/
 .idea/
-*.swp
-*.swo
-*.tmp
 
-# Build artifacts
-dist/
-build/
-*.o
-*.obj
-*.out
-
-# Dependencies
-node_modules/
-.mypy_cache/
-.pytest_cache/
-.coverage
+# Coverage
 coverage/
 htmlcov/
+.coverage
+
+# Python cache
+.mypy_cache/
+.pytest_cache/
+
+# Distribution / build artifacts
+dist/
+build/
 target/
 .gradle/
-julia-*/
-zig*/
+
+# OS generated files
+.DS_Store
+Thumbs.db
 ```

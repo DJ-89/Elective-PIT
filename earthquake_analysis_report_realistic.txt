@@ -1,0 +1,34 @@
+
+Earthquake Prediction Model Summary Report
+=========================================
+
+Model Performance:
+- Accuracy: 100.00%
+- AUC Score: 1.00
+- Precision: 1.00
+- Recall: 1.00
+- F1-Score: 1.00
+
+Dataset Information:
+- Total records: 9999
+- Training records: 7999
+- Testing records: 2000
+- Features used: 23
+- Significant earthquakes (>=4.0): 337 (3.37%)
+- Non-significant earthquakes: 9662 (96.63%)
+
+Top 5 Most Important Features:
+              feature  importance
+    magnitude_squared    0.688215
+ distance_from_center    0.094916
+depth_magnitude_ratio    0.083569
+          Depth_In_Km    0.059977
+cluster_Magnitude_std    0.027595
+
+Regional Analysis (Significant Quake Rate):
+is_significant  Significant_Rate
+Region                          
+Unknown                11.527378
+Mindanao                4.239855
+Visayas                 2.051768
+Luzon                   1.750772
